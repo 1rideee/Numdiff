@@ -30,13 +30,13 @@ def local_to_global(k,a):
 
 #simpson algorithm from wikipedia
 def simpson(f, K):
-    # print(K)
-    h = K[2] - K[0]
-    return (h/6) * (f(0) + 4*f(0.5) + f(1))
+
+
+    return (1/6) * (f(0) + 4*f(0.5) + f(1))
 
 #Matrix calculated from integrals in the overleaf document
 def Ak(h):
-    return 1/(3*h)* np.array([[7, -8, 1], [-8, 16 ,-8], [1, -8, 7]])
+    return 1/(6*h)* np.array([[7, -8, 1], [-8, 16 ,-8], [1, -8, 7]])
 
 def Fk(f, K):
     fk = np.zeros(3)
@@ -44,7 +44,7 @@ def Fk(f, K):
     fk[0] = h * simpson(lambda x : f(mapping(K,x))*phi0(x), K)
     fk[1] = h * simpson(lambda x : f(mapping(K,x))*phi1(x), K)
     fk[2] = h * simpson(lambda x : f(mapping(K,x))*phi2(x), K)
-    
+    print(fk)
     return fk
 
 
@@ -94,11 +94,11 @@ def modify_vector_boundary(v,a,b):
 def exact_solution(x):
     return -(1/2)*x*(x-1)
 
-test = False
-if test:
+
+def problem1(exact_solution, g): 
     
     X = [0,0.1,0.2,0.3,0.35,0.4,0.45,0.6,0.9, 0.96,1]  
-    midpoints = [(X[i] + X[i+1]) / 2 for i in range(len(X)-1)]
+
 
     tau = partition(X)
     
@@ -111,7 +111,6 @@ if test:
 
     combined.append(X[-1])  # Add the last original point
 
-    
 
     a, F = assembly(tau,g)
     a = modify_boundary(a)
@@ -127,6 +126,16 @@ if test:
     plt.ylabel('u(x)')
     plt.show()
 
+
+problem1(exact_solution, g)
+
+def u_1(x):
+    return np.sin(2*np.pi*x)
+
+def f_1(x):
+    return 4*np.pi**2 * np.sin(2*np.pi*x)
+
+problem1(u_1, f_1)
 
 
 def Ak2(h):
@@ -162,8 +171,8 @@ def y_d3(x):
     else:
         return 0
 
-test = True
-if test:
+
+def optim(alpha, y_d):
     X = [0,0.1,0.2,0.3,0.35,0.4,0.45,0.6,0.9, 0.96,1]  
     midpoints = [(X[i] + X[i+1]) / 2 for i in range(len(X)-1)]
 
@@ -187,21 +196,52 @@ if test:
     Aprime = Aprime[1:-1, 1:-1]
 
     big_A = np.block([[A, np.zeros_like(A), -Aprime.T], 
-                      [np.zeros_like(A), (1/100)*A, A.T],
+                      [np.zeros_like(A), (alpha)*A, A.T],
                       [-Aprime, A.T, np.zeros_like(A)]])
     
     
-    big_b = np.array([np.dot(Abar.T, [y_d3(x) for x in combined])])
+    big_b = np.array([np.dot(Abar.T, [y_d(x) for x in combined])])
     big_b = np.append(big_b, np.zeros(len(A)*2))
     print(np.shape(big_b), np.shape(big_A))
 
-    u = np.linalg.solve(big_A, big_b)
+    sol = np.linalg.solve(big_A, big_b)
 
-    print("y:", u[0:len(A)])
-    print("u", u[len(A):2*len(A)])
-    print("lambda:", u[2*len(A):])
+    y = sol[0:len(A)]
+    u = sol[len(A):2*len(A)]
+    lambda_ = sol[2*len(A):]
+    print("y:", y)
+    print("u", u)
+    print("lambda:", lambda_)
 
-
-
-
+    # plt.plot(combined[1:-1], y, "-", label='y')
+    plt.plot(combined[1:-1],u, "-o", label='u')
+    # plt.plot(combined[1:-1],lambda_, "-o", label='lambda')
     
+    plt.plot(combined, [y_d(x) for x in combined], "o", label='y_d')
+    plt.legend()
+    plt.title(f"Numerical solution with alpha = {alpha}")
+    plt.grid()
+
+
+plot= False
+if plot:
+    alpha = 1
+    optim(alpha, y_d1)
+    optim(alpha, y_d2)
+    optim(alpha, y_d3)
+    plt.show()
+
+    optim(1/100, y_d1)
+    optim(1/100, y_d2)
+    optim(1/100, y_d3)
+    plt.show()
+
+    optim(1e-6, y_d1)
+    optim(1e-6, y_d2)
+    optim(1e-6, y_d3)
+    plt.show()
+
+    optim(1e-8, y_d1)
+    optim(1e-8, y_d2)
+    optim(1e-8, y_d3)
+    plt.show()
