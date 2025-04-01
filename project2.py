@@ -132,6 +132,117 @@ def f_1(x):
 problem1(u_1, f_1)
 
 
+
+
+def compute_L2_error(u_h, nodes, exact_solution):
+    error_integral = 0.0
+
+    
+    for i in range(len(nodes) - 2):
+        
+        error_left = (exact_solution(nodes[i]) - u_h[i])**2
+        error_mid = (exact_solution(nodes[i+1]) - (u_h[i] + u_h[i+2])/2 )**2
+        error_right = (exact_solution(nodes[i+2]) - u_h[i+2])**2
+        
+        h = nodes[i+2] - nodes[i]
+        error_integral += (h / 6) * (error_left + 4 * error_mid + error_right)
+    
+    return np.sqrt(error_integral)
+
+
+mesh_sizes = [1/5, 1/10, 1/20, 1/40, 1/80, 1/160, 1/320, 1/640]  
+errors = []
+
+for h in mesh_sizes:
+    X = np.arange(0, 1 + h, h)  # Create partition
+    u_h, nodes = problem1(g, X)  # Compute numerical solution
+    error = compute_L2_error(u_h, nodes, exact_solution)
+    errors.append(error)
+
+# Compute order of convergence
+orders = [np.log(errors[i] / errors[i+1]) / np.log(2) for i in range(len(errors) - 1)]
+
+
+
+# Print results
+print("Mesh size (h) | L2 error ||u - u_h|| | Order of convergence")
+for i in range(len(errors) -1):
+    print(f"{mesh_sizes[i]:.5f}     | {errors[i]:.5e}         | {orders[i]:.2f}")
+
+# Plot error convergence
+plt.loglog(mesh_sizes, errors, "-o", label="L2 Error")
+plt.xlabel("Mesh size (h)")
+plt.ylabel("L2 error norm")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+def compute_H1_error(u_h, nodes, exact_solution, exact_derivative):
+    error_integral_L2 = 0.0
+    error_integral_H1 = 0.0
+
+    for i in range(len(nodes) - 2):
+        
+        error_left = (exact_solution(nodes[i]) - u_h[i])**2
+        error_mid = (exact_solution(nodes[i+1]) - (u_h[i] + u_h[i+2])/2 )**2
+        error_right = (exact_solution(nodes[i+2]) - u_h[i+2])**2
+        
+        h = nodes[i+2] - nodes[i]
+        error_integral_L2 += (h / 6) * (error_left + 4 * error_mid + error_right)
+        
+        # H1 semi-norm error (derivative part)
+        uh_prime = (u_h[i+2] - u_h[i]) / h  # Numerical derivative (linear approx)
+        
+        error_deriv_left = (exact_derivative(nodes[i]) - uh_prime)**2
+        error_deriv_mid = (exact_derivative(nodes[i+1]) - uh_prime)**2
+        error_deriv_right = (exact_derivative(nodes[i+2]) - uh_prime)**2
+        
+        error_integral_H1 += (h / 6) * (error_deriv_left + 4 * error_deriv_mid + error_deriv_right)
+
+    L2_error = np.sqrt(error_integral_L2)
+    H1_seminorm_error = np.sqrt(error_integral_H1)
+    
+    H1_error = np.sqrt(L2_error**2 + H1_seminorm_error**2)
+    
+    return H1_error, L2_error, H1_seminorm_error
+
+# Define exact derivative of the solution
+def exact_solution_derivative(x):
+    return - (x - 0.5)
+
+# Compute H1 error for different mesh sizes
+H1_errors = []
+L2_errors = []
+H1_seminorm_errors = []
+
+for h in mesh_sizes:
+    X = np.arange(0, 1 + h, h)  # Create an equidistant partition
+    u_h, nodes = problem1(g, X)  # Compute numerical solution
+    
+    H1_error, L2_error, H1_seminorm_error = compute_H1_error(u_h, nodes, exact_solution, exact_solution_derivative)
+    
+    H1_errors.append(H1_error)
+    L2_errors.append(L2_error)
+    H1_seminorm_errors.append(H1_seminorm_error)
+
+# Compute order of convergence
+H1_orders = [np.log(H1_errors[i] / H1_errors[i+1]) / np.log(2) for i in range(len(H1_errors) - 1)]
+
+# Print results
+print("Mesh size (h) | H1 error ||u - u_h||_H1 | Order of convergence")
+for i in range(len(H1_errors) - 1):
+    print(f"{mesh_sizes[i]:.5f}     | {H1_errors[i]:.5e}         | {H1_orders[i]:.2f}")
+
+# Plot H1 error convergence
+plt.loglog(mesh_sizes[:-1], H1_errors[:-1], "-o", label="H1 Error")
+plt.xlabel("Mesh size (h)")
+plt.ylabel("H1 error norm")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+
+
 def Ak2(h):
     return h/(15)* np.array([[2, 1, -1/2], [1, 8 , 1], [-1/2, 1, 2]])
 
