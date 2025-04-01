@@ -9,9 +9,6 @@ def partition(X):
     return Tau_h
 
 
-# print(partition(X))
-
-
 def phi0(x):
     return 2*x*x-3*x+1
 
@@ -29,8 +26,7 @@ def local_to_global(k,a):
     return 2*k+a
 
 #simpson algorithm from wikipedia
-def simpson(f, K):
-
+def simpson(f):
 
     return (1/6) * (f(0) + 4*f(0.5) + f(1))
 
@@ -41,12 +37,10 @@ def Ak(h):
 def Fk(f, K):
     fk = np.zeros(3)
     h = K[2] - K[0]
-    fk[0] = h * simpson(lambda x : f(mapping(K,x))*phi0(x), K)
-    fk[1] = h * simpson(lambda x : f(mapping(K,x))*phi1(x), K)
-    fk[2] = h * simpson(lambda x : f(mapping(K,x))*phi2(x), K)
-    print(fk)
+    fk[0] = h * simpson(lambda x : f(mapping(K,x))*phi0(x))
+    fk[1] = h * simpson(lambda x : f(mapping(K,x))*phi1(x))
+    fk[2] = h * simpson(lambda x : f(mapping(K,x))*phi2(x))
     return fk
-
 
 
 #Makes the big Matrix
@@ -83,12 +77,12 @@ def modify_boundary(A):
     return A
 
 #modified the boundary of the vector for the np.linalg.solve
-def modify_vector_boundary(v,a,b):
+def modify_vector_boundary(v, a, b):
     v[0]=a
     v[len(v)-1]=b
     return v
 
-#gives the coefficient vector for u. Missing the varphi function added thing for the solution to work
+
 
 #exact solution for comparison
 def exact_solution(x):
@@ -223,7 +217,7 @@ def optim(alpha, y_d):
     plt.grid()
 
 
-plot= False
+plot= True
 if plot:
     alpha = 1
     optim(alpha, y_d1)
