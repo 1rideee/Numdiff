@@ -3,12 +3,12 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+#Create the partition 
 def partition(X):  
-
     Tau_h = np.array([[a,(a+b)/2, b] for a, b in zip(X[0:-1], X[1:])])
     return Tau_h
 
-
+# Define the phi derivatives functions
 def phi0(x):
     return 2*x*x-3*x+1
 
@@ -18,21 +18,23 @@ def phi1(x):
 def phi2(x):
     return 2*x*x-x
 
+# Define the global mapping function
 def mapping(K, xi):
     h = K[2] - K[0]
     return K[0] + h*xi
 
+# Define the local to global index mapping function
 def local_to_global(k,a):
     return 2*k+a
 
 #simpson algorithm from wikipedia
 def simpson(f):
-
     return (1/6) * (f(0) + 4*f(0.5) + f(1))
 
 #Matrix calculated from integrals in the overleaf document
 def Ak(h):
-    return 1/(6*h)* np.array([[7, -8, 1], [-8, 16 ,-8], [1, -8, 7]])
+    return 1/(3*h)* np.array([[7, -8, 1], [-8, 16 ,-8], [1, -8, 7]])
+
 
 def Fk(f, K):
     fk = np.zeros(3)
@@ -52,7 +54,7 @@ def assembly(partition, func):
     F = np.zeros((m))
 
     for k in range(p):
-        hk = partition[k][1] - partition[k][0]
+        hk = partition[k][2] - partition[k][0]
         ak = Ak(hk)
         fk = Fk(func, partition[k])
         for alpha in range(3):
@@ -77,7 +79,7 @@ def modify_boundary(A):
     return A
 
 #modified the boundary of the vector for the np.linalg.solve
-def modify_vector_boundary(v, a, b):
+def modify_vector_boundary(v,a,b):
     v[0]=a
     v[len(v)-1]=b
     return v
@@ -89,39 +91,47 @@ def exact_solution(x):
     return -(1/2)*x*(x-1)
 
 
-def problem1(exact_solution, g): 
+
+
+def problem1(g, X): 
     
-    X = [0,0.1,0.2,0.3,0.35,0.4,0.45,0.6,0.9, 0.96,1]  
-
-
     tau = partition(X)
     
-
-    combined = []
+    Xi = []
 
     for i in range(len(X) - 1):
-        combined.append(X[i])  # Add original point
-        combined.append((X[i] + X[i+1]) / 2)  # Add midpoint
+        Xi.append(X[i])  
+        Xi.append((X[i] + X[i+1]) / 2)  # Add midpoint
 
-    combined.append(X[-1])  # Add the last original point
+    Xi.append(X[-1])  # Add the last original point
 
 
-    a, F = assembly(tau,g)
+    a, F = assembly(tau, g)
     a = modify_boundary(a)
     F = modify_vector_boundary(F,0,0)
-    print("F:",F)
+    # print("F:",F)
     u = np.linalg.solve(a,F)
 
-    x = np.linspace(0,1,len(u))
-    plt.plot(combined, u, "-o", label='u')
+    return u, Xi
+
+def plot_solution(u, Xi, exact_solution):
+    plt.figure(figsize=(10, 6))
+    x = np.linspace(0,1,100)
+    plt.plot(Xi, u, "-o", label='u')
     plt.plot(x, exact_solution(x), label='exact')
     plt.legend()
     plt.xlabel('x')
     plt.ylabel('u(x)')
     plt.show()
 
+X = [0,0.1,0.2,0.3,0.4,0.6,0.9, 0.96,1]  
 
-problem1(exact_solution, g)
+u, xi= problem1(g, X)
+
+plot_solution(u, xi, exact_solution)
+
+
+
 
 def u_1(x):
     return np.sin(2*np.pi*x)
@@ -129,10 +139,16 @@ def u_1(x):
 def f_1(x):
     return 4*np.pi**2 * np.sin(2*np.pi*x)
 
-problem1(u_1, f_1)
+u, xi = problem1(f_1, X)
+
+plot_solution(u, xi, u_1)
 
 
+X = np.linspace(0,1,10)  # Create a finer grid for plotting
 
+u, xi= problem1(f_1, X)
+
+plot_solution(u, xi, u_1)
 
 def compute_L2_error(u_h, nodes, exact_solution):
     error_integral = 0.0
